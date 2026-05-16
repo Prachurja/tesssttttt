@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="../coi-serviceworker.min.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CPC // ACCESS REQUIRED</title>
@@ -261,20 +260,7 @@
       50% { opacity: 0.2; }
     }
 
-    /* game container */
-    #game-wrapper {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #000;
-      z-index: 200;
-    }
 
-    #game-wrapper iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
   </style>
 </head>
 <body>
@@ -309,9 +295,7 @@
     </div>
   </div>
 
-  <div id="game-wrapper">
-    <iframe id="gameFrame" src="" allow="autoplay; fullscreen"></iframe>
-  </div>
+
 
   <script>
     // ── PUT YOUR PASSWORD(S) HERE ──────────────────────────────
@@ -342,10 +326,7 @@
     }
 
     function launchGame() {
-      const wrapper = document.getElementById('game-wrapper');
-      const frame = document.getElementById('gameFrame');
-      frame.src = 'Web/index.html';
-      wrapper.style.display = 'block';
+      window.location.href = 'Web/index.html';
     }
   </script>
 

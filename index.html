@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="../coi-serviceworker.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CPC // ACCESS REQUIRED</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #050a0e;
+      --panel: #0a1520;
+      --border: #1a3a5c;
+      --green: #00ff88;
+      --green-dim: #00ff8840;
+      --green-glow: #00ff8820;
+      --red: #ff3355;
+      --text: #a0c4d8;
+      --text-dim: #3a6070;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* grid bg */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    .gate {
+      position: relative;
+      z-index: 10;
+      width: 480px;
+      max-width: 95vw;
+      animation: fadeIn 0.6s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header {
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    .cpc-label {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: var(--green);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      opacity: 0.7;
+    }
+
+    .title {
+      font-family: 'Orbitron', monospace;
+      font-size: 28px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 2px;
+      line-height: 1.2;
+    }
+
+    .title span {
+      color: var(--green);
+    }
+
+    .subtitle {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 32px;
+      position: relative;
+    }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+    }
+
+    .corner {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-color: var(--green);
+      border-style: solid;
+      opacity: 0.6;
+    }
+    .corner-tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+    .corner-tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+    .corner-bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+    .corner-br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+    .prompt-line {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 1.5px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+
+    .prompt-line::before {
+      content: '> ';
+      color: var(--green);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
+
+    .input-row:focus-within {
+      border-color: var(--green);
+      box-shadow: 0 0 20px var(--green-glow);
+    }
+
+    .input-row.error {
+      border-color: var(--red);
+      box-shadow: 0 0 20px rgba(255,51,85,0.15);
+      animation: shake 0.3s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    .cursor-prefix {
+      padding: 14px 12px 14px 16px;
+      color: var(--green);
+      font-size: 16px;
+      background: var(--green-glow);
+      user-select: none;
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="password"] {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--green);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 16px;
+      padding: 14px 12px;
+      letter-spacing: 3px;
+      caret-color: var(--green);
+    }
+
+    input[type="password"]::placeholder {
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      font-size: 13px;
+    }
+
+    button {
+      background: transparent;
+      border: none;
+      border-left: 1px solid var(--border);
+      color: var(--green);
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 14px 20px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      text-transform: uppercase;
+    }
+
+    button:hover {
+      background: var(--green);
+      color: var(--bg);
+    }
+
+    .status {
+      margin-top: 14px;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      min-height: 16px;
+      text-transform: uppercase;
+    }
+
+    .status.err { color: var(--red); }
+    .status.ok  { color: var(--green); }
+
+    .bottom-bar {
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      margin-right: 6px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    /* game container */
+    #game-wrapper {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 200;
+    }
+
+    #game-wrapper iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="gate">
+    <div class="header">
+      <div class="cpc-label">South Breeze School</div>
+      <div class="title">Computer<br/><span>Programming</span> Club</div>
+      <div class="subtitle">// RESTRICTED ACCESS //</div>
+    </div>
+
+    <div class="panel">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <div class="prompt-line">Enter access code to continue</div>
+
+      <div class="input-row" id="inputRow">
+        <div class="cursor-prefix">_</div>
+        <input type="password" id="passwordInput" placeholder="access code" autocomplete="off" />
+        <button onclick="checkPassword()">ENTER</button>
+      </div>
+
+      <div class="status" id="status"></div>
+
+      <div class="bottom-bar">
+        <div><span class="dot"></span>SYSTEM ONLINE</div>
+        <div>CPC // 2026</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-wrapper">
+    <iframe id="gameFrame" src="" allow="autoplay; fullscreen"></iframe>
+  </div>
+
+  <script>
+    // ── PUT YOUR PASSWORD(S) HERE ──────────────────────────────
+    const VALID_PASSWORDS = ["cpc2026", "graveyard", "southbreeze"];
+    // ──────────────────────────────────────────────────────────
+
+    const input = document.getElementById('passwordInput');
+    const status = document.getElementById('status');
+    const inputRow = document.getElementById('inputRow');
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') checkPassword();
+    });
+
+    function checkPassword() {
+      const val = input.value.trim().toLowerCase();
+      if (VALID_PASSWORDS.map(p => p.toLowerCase()).includes(val)) {
+        status.textContent = '// ACCESS GRANTED — LOADING...';
+        status.className = 'status ok';
+        setTimeout(launchGame, 600);
+      } else {
+        inputRow.classList.add('error');
+        status.textContent = '// INVALID CODE — TRY AGAIN';
+        status.className = 'status err';
+        input.value = '';
+        setTimeout(() => inputRow.classList.remove('error'), 400);
+      }
+    }
+
+    function launchGame() {
+      const wrapper = document.getElementById('game-wrapper');
+      const frame = document.getElementById('gameFrame');
+      frame.src = 'Web/index.html';
+      wrapper.style.display = 'block';
+    }
+  </script>
+
+</body>
+</html>
